@@ -17,6 +17,16 @@ mnist_info = {
 }
 
 
+idx_dt = {
+    0x08 : 'B', # uint8
+    0x09 : 'b', # int8
+    0x0b : 'h', # int16
+    0x0c : 'i', # int32
+    0x0d : 'f', # float32
+    0x0e : 'd', # float64
+}
+
+
 def download_mnist_file(fname, target_dir, force=False):
     target_fname = os.path.join(target_dir, fname)
 
@@ -25,22 +35,13 @@ def download_mnist_file(fname, target_dir, force=False):
         urlretrieve(url, target_fname)
 
 
-def parse_labels(fname, target_dir):
+def parse_idx(fname, target_dir):
     with gzip.open(os.path.join(target_dir, fname), 'rb') as f:
-        magic, size = struct.unpack('>II', f.read(8))
-        dt = np.dtype(np.uint8).newbyteorder('>')
-        labels = np.frombuffer(f.read(), dtype=dt)
-        return labels
-
-
-def parse_images(fname, target_dir):
-    with gzip.open(os.path.join(target_dir, fname), 'rb') as f:
-        magic, size = struct.unpack('>II', f.read(8))
-        nrows, ncols = struct.unpack('>II', f.read(8))
-        dt = np.dtype(np.uint8).newbyteorder('>')
-        images = np.frombuffer(f.read(), dtype=dt)
-        images = images.reshape((size, nrows, ncols))
-        return images
+        zeros, dt, ndims = struct.unpack('>HBB', f.read(4))
+        dims = struct.unpack('>' + 'I'*ndims, f.read(4*ndims))
+        dt = np.dtype('>' + idx_dt[dt])
+        data = np.frombuffer(f.read(), dtype=dt)
+        return data.reshape(dims)
 
 
 class MNIST(object):
@@ -64,25 +65,25 @@ class MNIST(object):
     def train_labels(self):
         download_mnist_file(mnist_info['train']['labels'],
                             self.target_dir, force=self.force)
-        return parse_labels(mnist_info['train']['labels'], self.target_dir)
+        return parse_idx(mnist_info['train']['labels'], self.target_dir)
 
 
     def train_images(self):
         download_mnist_file(mnist_info['train']['images'],
                             self.target_dir, force=self.force)
-        return parse_images(mnist_info['train']['images'], self.target_dir)
+        return parse_idx(mnist_info['train']['images'], self.target_dir)
 
 
     def test_labels(self):
         download_mnist_file(mnist_info['test']['labels'],
                             self.target_dir, force=self.force)
-        return parse_labels(mnist_info['test']['labels'], self.target_dir)
+        return parse_idx(mnist_info['test']['labels'], self.target_dir)
 
 
     def test_images(self):
         download_mnist_file(mnist_info['test']['images'],
                             self.target_dir, force=self.force)
-        return parse_images(mnist_info['test']['images'], self.target_dir)
+        return parse_idx(mnist_info['test']['images'], self.target_dir)
 
 
 def main():
