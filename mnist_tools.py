@@ -3,7 +3,7 @@ import gzip
 import struct
 import tempfile
 import shutil
-from urllib.parse import urljoin
+import urllib.parse
 import requests
 import numpy as np
 from tqdm import tqdm
@@ -32,7 +32,7 @@ def download_mnist_file(fname, target_dir, force=False):
     target_fname = os.path.join(target_dir, fname)
 
     if force or not os.path.isfile(target_fname):
-        url = urljoin(mnist_info['base_url'], fname)
+        url = urllib.parse.urljoin(mnist_info['base_url'], fname)
 
         resp = requests.get(url, stream=True)
 
@@ -52,7 +52,6 @@ def download_mnist_file(fname, target_dir, force=False):
                 bar.update(size)
 
 
-
 def parse_idx(fname, target_dir):
     with gzip.open(os.path.join(target_dir, fname), 'rb') as f:
         zeros, dt, ndims = struct.unpack('>HBB', f.read(4))
@@ -63,7 +62,7 @@ def parse_idx(fname, target_dir):
 
 
 class MNIST(object):
-    def __init__(self, target_dir=None, clean_up=True, force=False):
+    def __init__(self, target_dir=None, clean_up=False, force=False):
         if target_dir is None:
             self.target_dir = tempfile.mkdtemp(prefix='mnist')
             self.clean_up = True
