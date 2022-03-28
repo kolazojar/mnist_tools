@@ -6,7 +6,6 @@ import shutil
 import urllib.parse
 import requests
 import numpy as np
-from tqdm import tqdm
 
 
 mnist_info = {
@@ -33,23 +32,11 @@ def download_mnist_file(fname, target_dir, force=False):
 
     if force or not os.path.isfile(target_fname):
         url = urllib.parse.urljoin(mnist_info['base_url'], fname)
-
-        resp = requests.get(url, stream=True)
-
-        total = int(resp.headers.get('content-length', 0))
-
-        with open(target_fname, 'wb') as file, tqdm(
-            desc=fname,
-            total=total,
-            unit='iB',
-            unit_scale=True,
-            unit_divisor=1024,
-            ascii=True,
-            dynamic_ncols=True
-        ) as bar:
-            for data in resp.iter_content(chunk_size=1024):
-                size = file.write(data)
-                bar.update(size)
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(target_fname, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=1024):
+                    size = f.write(chunk)
 
 
 def parse_idx(fname, target_dir):
